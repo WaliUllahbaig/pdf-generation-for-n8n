@@ -1,0 +1,54 @@
+version: '3.8'
+
+services:
+  html-to-pdf-api:
+    build:
+      context: .
+      dockerfile: Dockerfile
+    
+    container_name: html-to-pdf-api
+    
+    ports:
+      - "5001:5001"
+    
+    environment:
+      - PYTHONUNBUFFERED=1
+      - FLASK_ENV=production
+    
+    restart: unless-stopped
+    
+    # Resource limits to prevent memory exhaustion
+    mem_limit: 1g
+    memswap_limit: 1g
+    cpus: '2'
+    
+    # Health check
+    healthcheck:
+      test: ["CMD", "curl", "-f", "http://localhost:5001/health"]
+      interval: 30s
+      timeout: 10s
+      retries: 3
+      start_period: 5s
+    
+    # Logging configuration
+    logging:
+      driver: "json-file"
+      options:
+        max-size: "100m"
+        max-file: "10"
+    
+    # Security options
+    read_only: true
+    tmpfs:
+      - /tmp
+      - /run
+
+volumes:
+  # Optional: for persistent logs if needed
+  logs:
+    driver: local
+
+networks:
+  default:
+    name: html-to-pdf-network
+    driver: bridge
