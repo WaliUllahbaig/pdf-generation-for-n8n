@@ -17,6 +17,7 @@ from functools import wraps
 import sys
 
 from flask import Flask, request, send_file, jsonify
+from flasgger import Swagger
 from weasyprint import HTML, CSS
 from weasyprint.css import get_all_computed_styles
 from weasyprint.css.targets import TargetCollector
@@ -62,6 +63,24 @@ app.config['JSONIFY_PRETTYPRINT_REGULAR'] = True
 
 # Set maximum request size to 50MB to handle large HTML strings
 app.config['MAX_CONTENT_LENGTH'] = 50 * 1024 * 1024
+
+# Initialize Swagger for interactive API documentation
+swagger = Swagger(app, template={
+    "swagger": "2.0",
+    "info": {
+        "title": "HTML to PDF Converter API",
+        "version": "1.0.0",
+        "description": "Convert HTML strings to PDF files with comprehensive error handling",
+        "contact": {
+            "name": "API Support"
+        }
+    },
+    "host": "localhost:5001",
+    "basePath": "/",
+    "schemes": ["http"],
+    "consumes": ["application/json"],
+    "produces": ["application/pdf", "application/json"]
+})
 
 
 # ============================================================================
@@ -235,9 +254,24 @@ def generate_pdf_from_html(html_content: str) -> bytes:
 def health_check():
     """
     Health check endpoint for Docker and Kubernetes orchestration.
-    
-    Returns:
-        JSON response with status and timestamp
+    ---
+    tags:
+      - System
+    responses:
+      200:
+        description: Service is healthy
+        schema:
+          type: object
+          properties:
+            status:
+              type: string
+              example: "ok"
+            service:
+              type: string
+              example: "html-to-pdf-api"
+            version:
+              type: string
+              example: "1.0.0"
     """
     logger.debug("Health check requested")
     return jsonify({
@@ -253,25 +287,63 @@ def health_check():
 def convert_html_to_pdf():
     """
     Convert HTML string to PDF file.
-    
-    Endpoint: POST /html-to-pdf
-    
-    Request JSON:
-        {
-            "html": "<html>...</html>"
-        }
-    
-    Success Response (200):
-        Binary PDF file with headers:
-        - Content-Type: application/pdf
-        - Content-Disposition: attachment; filename="report.pdf"
-    
-    Error Responses:
-        - 400: Missing or invalid 'html' field
-        - 500: PDF generation failed
-    
-    Returns:
-        PDF file or error JSON
+    ---
+    tags:
+      - PDF Conversion
+    consumes:
+      - application/json
+    produces:
+      - application/pdf
+    parameters:
+      - in: body
+        name: body
+        description: HTML string to convert to PDF
+        required: true
+        schema:
+          type: object
+          required:
+            - html
+          properties:
+            html:
+              type: string
+              example: "<html><body><h1>Hello World</h1><p>This is a test PDF</p></body></html>"
+              description: Full HTML string to convert to PDF (max 10MB)
+    responses:
+      200:
+        description: Successfully generated PDF file
+        content:
+          application/pdf:
+            schema:
+              type: string
+              format: binary
+      400:
+        description: Invalid request (missing or invalid html field)
+        schema:
+          type: object
+          properties:
+            error:
+              type: string
+              example: "Validation Error"
+            details:
+              type: string
+              example: "Required field 'html' is missing from request body"
+      413:
+        description: Payload too large
+        schema:
+          type: object
+          properties:
+            error:
+              type: string
+      500:
+        description: PDF generation failed
+        schema:
+          type: object
+          properties:
+            error:
+              type: string
+              example: "PDF generation failed"
+            details:
+              type: string
     """
     logger.info("HTML to PDF conversion request received")
     
@@ -303,9 +375,37 @@ def convert_html_to_pdf():
 def get_info():
     """
     Get API information and capabilities.
-    
-    Returns:
-        JSON with API metadata and capabilities
+    ---
+    tags:
+      - System
+    responses:
+      200:
+        description: API metadata and capabilities
+        schema:
+          type: object
+          properties:
+            name:
+              type: string
+              example: "HTML to PDF Converter API"
+            version:
+              type: string
+              example: "1.0.0"
+            description:
+              type: string
+            endpoints:
+              type: object
+            max_payload_size_mb:
+              type: integer
+              example: 50
+            max_html_size_mb:
+              type: integer
+              example: 10
+            pdf_library:
+              type: string
+              example: "WeasyPrint"
+            production_ready:
+              type: boolean
+              example: true
     """
     return jsonify({
         "name": "HTML to PDF Converter API",
@@ -314,7 +414,8 @@ def get_info():
         "endpoints": {
             "POST /html-to-pdf": "Convert HTML to PDF",
             "GET /health": "Health check",
-            "GET /info": "API information"
+            "GET /info": "API information",
+            "GET /apidocs": "Interactive API documentation (Swagger UI)"
         },
         "max_payload_size_mb": 50,
         "max_html_size_mb": 10,

@@ -1,0 +1,21 @@
+name: html_to_pdf
+channels:
+  - conda-forge
+dependencies:
+  - python=3.11
+  - pip
+  - pango
+  - gdk-pixbuf
+  - libffi
+  - cairo
+  - pip:
+    - Flask==3.0.0
+    - Werkzeug==3.0.1
+    - flasgger==0.9.7.1
+    - WeasyPrint==60.1
+    - Pillow==10.1.0
+    - html5lib==1.1
+    - fonttools==4.46.0
+    - pydyf==0.5.0
+    - gunicorn==21.2.0
+    - python-dotenv==1.0.0

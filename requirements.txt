@@ -2,6 +2,9 @@
 Flask==3.0.0
 Werkzeug==3.0.1
 
+# Swagger/OpenAPI Documentation
+flasgger==0.9.7.1
+
 # PDF Generation
 WeasyPrint==60.1
 # WeasyPrint dependencies
